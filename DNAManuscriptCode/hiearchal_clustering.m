@@ -5,55 +5,71 @@ load Crystalparams.mat
 load Molecularparams.mat
 
 %Need to compare all branches in the dendrogram eventually
-
-comparisonmatrix=zeros(16,16);
+samp=50;
+comparisonmatrix=zeros(12,12);
 %Nonrandom sequences given here
 provided_seqs={'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     'TTTAAAGGGGTTTAAAGGGGGTTTAAAGGGGTTTAAAGGGGGTTTAAAGGGGTTTAAAGGGGGTTTAAAGGGGTTTAAAGGGGGTTTAAAGGGGTTTAAA',
-    'CATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAACATGGGAAAAAC',
-    'GCCATAGCAAAGGTGATTAATAAATACACAATCTTCTTAGATGACAGGTAAGCTCCATCTTTATTTGTAGGACTACTATAAAATAAATACTCCAACATAA',
-    'CAAGCAGCTGCCGGGCTGCGTCCAACTCACGTCGTAAGCAGAACGATTGGGCGCGGAGTCTGCGGAACCCGGGCGGTGGCCGAGCGGCTGCTGGGGGAGC',
-    'ATCTCATATGGAGGAAACCGTAAAGAATGCAACCTATGGAAAAAAGCGTTCAACCTACTAATGTATACACTACTACTCTGAATTAGTTACAAACGTTGCA',
-    'TCCGCTGCGCGAGGTTTGCCGCCTCGGCTGGTCCGGACTACATTGGTCCGACCCCACTCCAGCCAGCCATTGGAATAGTCATGCCTGGGTCAGAACTGCG'};
+    'AGCATGCTTTAGCATGCTTTTAGCATGCTTTAGCATGCTTTTAGCATGCTTTAGCATGCTTTTAGCATGCTTTAGCATGCTTTTAGCATGCTTTAGCATG'};
 
 %Parametrize sequence
-for branch=1:16
+for branch=1:12
     A1 = eye(10);
-    if branch<9
+    if branch<7
         A1=A1*theta0rho0new(1:10,:);
     else
-        A1=A1*molecdata;
+        A1=[];
     end
-    if (branch==8)||(branch==16)
+    if (branch==4)||(branch==10)
             updateseq1=1;
-            required_samples=100;
+            required_samples=samp;
+            gcbias1=0.2;
+    elseif (branch==5)||(branch==11)
+            updateseq1=1;
+            required_samples=samp;
+            gcbias1=0.8;
+    elseif (branch==6)||(branch==12)
+            updateseq1=1;
+            required_samples=samp;
+            gcbias1=0.5;
     else
             updateseq1=0;
-            seq1=provided_seqs{mod(branch,8)};
+            
+            seq1=provided_seqs{mod(branch,6)};
             required_samples=1;
     end
     for branch_to_compare=1:(branch-1)
         A2 = eye(10);
-        if branch_to_compare<9
+        if branch_to_compare<7
             A2=A2*theta0rho0new(1:10,:);
         else
-            A2=A2*molecdata;
+            A2=[];
         end
-        if (branch_to_compare==8)||(branch_to_compare==16)
+        if (branch_to_compare==4)||(branch_to_compare==10)
             updateseq2=1;
-            required_samples=100;
-        else
+            required_samples=samp;
+            gcbias2=0.2;
+    elseif (branch_to_compare==5)||(branch_to_compare==11)
+            updateseq2=1;
+            required_samples=samp;
+            gcbias2=0.8;
+    elseif (branch_to_compare==6)||(branch_to_compare==12)
+            updateseq2=1;
+            required_samples=samp;
+            gcbias2=0.5;
+    else
             updateseq2=0;
-            seq2=provided_seqs{mod(branch_to_compare,8)};
+            seq2=provided_seqs{mod(branch_to_compare,6)};
             required_samples=1;
         end
 samples=zeros(required_samples,1);
 %If needed, make random sequence
 for current_sample=1:required_samples
 operators = {'A', 'T', 'G', 'C'};
-indexes = randi(length(operators), 1, 100);
+
 if updateseq1==1
-    seq1=cell2mat(operators(indexes));
+    seq1=generateDNASequence(gcbias1);
+    
 end
 
 stran=size(seq1);
@@ -112,7 +128,22 @@ Rise = repmat(3.4,N, 1);
 Slide = zeros(N, 1);
 Shift = zeros(N, 1);
 Roll = repmat(0.1,N,1);
+if isempty(A1)
+    addpath('./Utilities');
+    [Buckle_Propeller_Opening, ...
+    Shear_Stretch_Stagger, ...
+    pho_W_rot , pho_W_tr, ...
+    Tilt_Roll_Twist, ...
+    Shift_Slide_Rise, ...
+    pho_C_rot , pho_C_tr ] = vector2shapes(nondim2cur(cgDNAp(seq1).groundstate));
 
+    Tilt=Tilt_Roll_Twist(:,1);
+    Roll=Tilt_Roll_Twist(:,2);
+    Twist=Tilt_Roll_Twist(:,3);
+    Shift=Shift_Slide_Rise(:,1);
+    Slide=Shift_Slide_Rise(:,2);
+    Rise=Shift_Slide_Rise(:,3);
+else
 for i=1:N 
     FGH = MasterMatrixCopy(:,:,seqnum(i));
     FGH(1:3,4:6) = FGH(1:3,4:6)';
@@ -134,6 +165,7 @@ for i=1:N
         Shift(i)=-thrho(4);
     end
 end
+end
 angles = atand(Tilt./Roll);
 rolltilt= sqrt(Tilt.^2+Roll.^2);
 orient(:,:,1) = eye(3);
@@ -153,7 +185,7 @@ end
 operators = {'A', 'T', 'G', 'C'};
 indexes = randi(length(operators), 1, 100);
 if updateseq2==1   
-    seq2 = cell2mat(operators(indexes));
+    seq2=generateDNASequence(gcbias2);
 end
 stran=size(seq2);
 N = stran(1,2)-1;
@@ -207,7 +239,22 @@ Rise = repmat(3.4,N, 1);
 Slide = zeros(N, 1);
 Shift = zeros(N, 1);
 Roll = repmat(0.1,N,1);
+if isempty(A2)
+    addpath('./Utilities');
+    [Buckle_Propeller_Opening, ...
+    Shear_Stretch_Stagger, ...
+    pho_W_rot , pho_W_tr, ...
+    Tilt_Roll_Twist, ...
+    Shift_Slide_Rise, ...
+    pho_C_rot , pho_C_tr ] = vector2shapes(nondim2cur(cgDNAp(seq2).groundstate));
 
+    Tilt=Tilt_Roll_Twist(:,1);
+    Roll=Tilt_Roll_Twist(:,2);
+    Twist=Tilt_Roll_Twist(:,3);
+    Shift=Shift_Slide_Rise(:,1);
+    Slide=Shift_Slide_Rise(:,2);
+    Rise=Shift_Slide_Rise(:,3);
+else
 for i=1:N 
     FGH = MasterMatrixCopy(:,:,seqnum(i));
     FGH(1:3,4:6) = FGH(1:3,4:6)';
@@ -229,7 +276,7 @@ for i=1:N
         Shift(i)=-thrho(4);
     end
 end
-
+end
 angles = atand(Tilt./Roll);
 rolltilt= sqrt(Tilt.^2+Roll.^2);
 orient2(:,:,1) = eye(3);
@@ -266,7 +313,7 @@ for i = 1:Nconfig
     end
    
 end
-samples(current_sample)=dist;
+samples(current_sample)=dist';
 end
 Z = linkage(distvec);
 comparisonmatrix(branch,branch_to_compare)=mean(samples);
@@ -276,8 +323,9 @@ end
 A=6+log10(comparisonmatrix);
 v = A(tril(true(size(A)), -1))';
 
-tree=linkage(v,'ward');
-labels=["Crystal (A) Repeat","Crystal (T_3A_3G_4T_3A_3G_5) Repeat","Crystal (CATG_3A_5) Repeat","Crystal AT Biased (Crystal)","Crystal GC Biased (Crystal)", "Crystal AT Biased (Molecular)", "Crystal GC Biased (Molecular)","Crystal Random","Molecular (A) Repeat","Molecular (T_3A_3G_4T_3A_3G_5) Repeat","Molecular (CATG_3A_5) Repeat","Molecular AT Biased (Crystal)","Molecular GC Biased (Crystal)", "Molecular AT Biased (Molecular)", "Molecular GC Biased (Molecular)","Molecular Random"];
+tree=linkage(v,'average'); %Technically this data might be slightly non euclidean from the fact averages are compared
+%Though it should be sufficently close to make this appropriate
+labels=["Crystal (A) Repeat","Crystal (T_3A_3G_4T_3A_3G_5) Repeat","Crystal ((AGCATGCT_3)_2T) Repeat","Crystal AT Biased","Crystal GC Biased","Crystal Random","cgDNA+ (A) Repeat","cgDNA+ (T_3A_3G_4T_3A_3G_5) Repeat","cgDNA+ ((AGCATGCT_3)_2T) Repeat", "cgDNA+ AT Biased", "cgDNA+ GC Biased","cgDNA+ Random"];
 h=dendrogram(tree,'Labels',labels,'Orientation','left');
 
 set(h,'LineWidth',2)
@@ -285,7 +333,32 @@ set(gca, 'FontSize', 12);
 
 
 xlabel('RMSD (Angstroms^2)', 'FontSize', 14);  
+function dnaSequence = generateDNASequence(gcBias)
+    % generateDNASequence generates a random DNA sequence of length 100
+    % with a specified GC bias.
+    %
+    % Input:
+    %   gcBias - A number between 0 and 1 indicating the fraction of G and C.
+    %
+    % Output:
+    %   dnaSequence - A string representing the DNA sequence.
 
+    if gcBias < 0 || gcBias > 1
+        error('GC bias must be between 0 and 1.');
+    end
 
-    
-    
+    dnaSequence = '';
+    for i = 1:100
+        r = rand; % Generate a random number between 0 and 1
+        if r < gcBias / 2
+            nucleotide = 'G';
+        elseif r < gcBias
+            nucleotide = 'C';
+        elseif r < (1 + gcBias) / 2
+            nucleotide = 'A';
+        else
+            nucleotide = 'T';
+        end
+        dnaSequence = [dnaSequence nucleotide];
+    end
+end
