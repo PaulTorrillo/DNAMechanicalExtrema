@@ -5,7 +5,7 @@ load Crystalparams.mat
 load Molecularparams.mat
 rotate3d on
 %Put your sequence of choice here
-seq = 'AAAACCGGCAAAAAAACCCCGCAAAAAACCGGCAAAATACCGGCAGAAAACCCGGCAGAAAACCGGCAAAAACCCCGCAAAAAACCGGCAAAAAACCGGCAAAATACCGGCAGAAAACCCGGCAGAAAACCGGCAAAAAAACCGGCAAAAAAACCCCGCAAAAAACCGGCAAAATACCGGCAAAAAACCCGGCAGAAAACCGGCAAAAAAACCGGCAAAAAAAACCCGCAAAAAAACCGGCAAAATACCAGTAAAATACCCGGCAGAAAACCGGCAAAAACCGGCAAAAACCCCGCAAAAAACCGGCAAAATACCGGCAAAAAACCCGGCAGAAAACCGGCAAAAAAACCCCGCAAAAAACCGGCAAAATACCGGTAAAATACCCGGCAAAAAAACCGGCAAAAAACCGGTAAAATAC';
+seq = 'TTTAAAGGGGGTTTCAAGGAGGTTTAAAGGGGGTTTGAAGGGGTTTTCAAAAGGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTCGAAGGGGGTTTAAAGGGGTTTAAAGGGGGGTTTGAAAGGGGTTTGAAAGGGGGTTTGAAGGGGGTTTGAAGGGGGTTTGAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAGGGGGTTTAAAGGGGTTTAAAGGGGGTTTGAAAGGGGTTTGAAAGGGGGTTTGAAGGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAGGGGGTTTGAAAGGGGTTTGAAGGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTGAAAGGGGTTTCAGAAGGGTTTAAAGAGGGTTCCAAAGAGGATTTGAAAGGGGTTTCAAGGGGTTCAAAAAAGATTTCAGAAAAGTTTAAAGGGGGTTTCAAGGAGGTTTAAAGGGGGTTTGAAGGGGTTT';
 stran=size(seq);
 N = stran(1,2)-1;
 seqnum = ones(N,1)*1;
@@ -60,14 +60,12 @@ Rise = repmat(3.4,N, 1);
 Slide = zeros(N, 1);
 Shift = zeros(N, 1);
 Roll = repmat(0.1,N,1);
-A = eye(10);
-A=A*theta0rho0new(1:10,:);
+A=theta0rho0new(1:10,:);
 for i=1:N 
     FGH = MasterMatrixCopy(:,:,seqnum(i));
     FGH(1:3,4:6) = FGH(1:3,4:6)';
-    
     thrho = A(seqnum(i),:)';
-
+   
     if abs(imag(thrho)) > 1e-6
         keyboard
     end
@@ -84,7 +82,6 @@ for i=1:N
     end
 end
 
-%Calculate the structure with the Cambridge model
 angles = atand(Tilt./Roll);
 rolltilt= sqrt(Tilt.^2+Roll.^2);
 orient(:,:,1) = eye(3);
@@ -99,7 +96,7 @@ for r = 1:N
     w=midorient(:,:,r);
     transl(:,r+1)=transl(:,r)+Shift(r,1)*w(:,1)+Slide(r,1)*w(:,2)+Rise(r,1)*w(:,3);
 end
-%Plot it
+
 t=tiledlayout(1,2);
 ax1=nexttile;
 grid on;
@@ -188,18 +185,11 @@ for j = 1:N+1
         patch(xv(1,[1 2 8 7]),xv(2,[1 2 8 7]),xv(3,[1 2 8 7]),'r')
     end
 end
+axis equal
 grid on
 hold on
 
-view(45,30)
-
 title('Crystal', 'FontSize',16)
-operators = {'A', 'T', 'G', 'C'};
-
-%Above was making the sequence with crystal parametrization now we perform
-%molecular parametrization
-
-stran=size(seq);
 N = stran(1,2)-1;
 reversechecker=zeros(N,1);
 for k=1:N
@@ -252,26 +242,19 @@ Shift = zeros(N, 1);
 Roll = repmat(0.1,N,1);
 A = eye(10);
 
-A=A*molecdata;
-
-for i=1:N 
-    FGH = MasterMatrixCopy(:,:,seqnum(i));
-    FGH(1:3,4:6) = FGH(1:3,4:6)';
-    
-    thrho = A(seqnum(i),:)';
-    
-    Tilt(i) = thrho(1);
-    Roll(i) = thrho(2);
-    Twist(i) = thrho(3);
-    Shift(i) = thrho(4);
-    Slide(i) = thrho(5);
-    Rise(i) = thrho(6);
-    if reversechecker(i)==1
-        Tilt(i)=-thrho(1);
-        Shift(i)=-thrho(4);
-    end
-end
-
+addpath('./Utilities');
+[Buckle_Propeller_Opening, ...
+Shear_Stretch_Stagger, ...
+pho_W_rot , pho_W_tr, ...
+Tilt_Roll_Twist, ...
+Shift_Slide_Rise, ...
+pho_C_rot , pho_C_tr ] = vector2shapes(nondim2cur(cgDNAp(seq).groundstate));
+Tilt=Tilt_Roll_Twist(:,1);
+Roll=Tilt_Roll_Twist(:,2);
+Twist=Tilt_Roll_Twist(:,3);
+Shift=Shift_Slide_Rise(:,1);
+Slide=Shift_Slide_Rise(:,2);
+Rise=Shift_Slide_Rise(:,3);
 angles = atand(Tilt./Roll);
 rolltilt= sqrt(Tilt.^2+Roll.^2);
 orient2(:,:,1) = eye(3);
@@ -301,7 +284,6 @@ clear xv
 w=9;
 l=18;
 thickness=2;
-%We use Procrustes analyis to attempt to alighn the sequence
 for i = 1:Nconfig
     for k = i+1:Nconfig
         [dist, X, transform] = procrustes(Rvec(:,:,i)',Rvec(:,:,k)','scaling',false);
@@ -312,7 +294,7 @@ for i = 1:Nconfig
                 for p=1:N+1
     neworient(:,:,p)=transform.T'*orient2(:,:,p);
 end
-                for j = 1:N+1
+for j = 1:N+1
     xv(:,1) = RvecT(:,j,k)+w/2*neworient(:,1,j)+thickness/2*neworient(:,3,j);
     xv(:,2) = RvecT(:,j,k)+w/2*neworient(:,1,j)-thickness/2*neworient(:,3,j);
     xv(:,3) = RvecT(:,j,k)+w/2*neworient(:,1,j)+l/2*neworient(:,2,j)+thickness/2*neworient(:,3,j);
@@ -352,7 +334,7 @@ end
         patch(xv(1,[1 2 8 7]),xv(2,[1 2 8 7]),xv(3,[1 2 8 7]),'r')
     end
 end
-                for j = 1:N+1
+for j = 1:N+1
     xv(:,1) = RvecT(:,j,k)+w/2*neworient(:,1,j)-l/2*neworient(:,2,j)+thickness/2*neworient(:,3,j);
     xv(:,2) = RvecT(:,j,k)+w/2*neworient(:,1,j)-l/2*neworient(:,2,j)-thickness/2*neworient(:,3,j);
     xv(:,3) = RvecT(:,j,k)+w/2*neworient(:,1,j)+thickness/2*neworient(:,3,j);
@@ -410,7 +392,6 @@ ax1.ZAxis.FontSize = 14;
 ax2.XAxis.FontSize = 14;
 ax2.YAxis.FontSize = 14;
 ax2.ZAxis.FontSize = 14;
-view(45,30)
-title('Molecular', 'FontSize', 16)
-grid on; 
-sgt.FontWeight = 'bold';
+axis equal
+title('cgDNA+', 'FontSize', 16)
+grid on;
