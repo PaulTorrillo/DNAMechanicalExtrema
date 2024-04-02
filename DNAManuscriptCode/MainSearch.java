@@ -83,11 +83,11 @@ public class MainSearch {
     public static int rejectionCounter = 0;
     // Instance of MatlabEngine
     public static MatlabEngine eng;
-
+    public static String modeltype="runningforjava"; // Change to runningforjavacgDNA for the cgDNA parametrization (default is crystal
+    
     public static void main(String[] args) throws InterruptedException, ExecutionException, IOException {
         eng = MatlabEngine.startMatlab(); // Start Matlab engine
         eng.eval("addpath('" + System.getProperty("user.dir") + "')"); // Add working directory to Matlab engine's path
-        String modeltype="runningforjava"; // Change to runningforjavamolec for the molecular parametrization (default is crystal)
         String[] metrics= {
             "angoffset",
                     "persistence_length",
@@ -217,7 +217,7 @@ public class MainSearch {
             baseOptions.add(baseAtPosition);
         }
 
-        SequenceClass mutatedSequence = new SequenceClass(currentSequence, desiredIndex, "runningforjava",eng);
+        SequenceClass mutatedSequence = new SequenceClass(currentSequence, desiredIndex, modeltype, eng);
 
         // Accept the change if it improves the Sequence or is better than the percentile in ranked
         if (mutatedSequence.magnitude*maxsearch > dnaSequences.get(dnaSequences.size() - 1).magnitude*maxsearch || mutatedSequence.magnitude*maxsearch > ranked.get(percentile)*maxsearch) {
