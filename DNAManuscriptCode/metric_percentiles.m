@@ -10,7 +10,7 @@ for i=1:10000
     seq=cell2mat(operators(indexes));
     seq_list_string(i)=seq;
     %Choose index of metric of interest
-    %Call runningforjavamolec for molecular rather than crystal statistics
+    %Call runningforjavacgDNA for cgDNA rather than crystal statistics
     list_results(i,1)=runningforjava(seq,1); 
 end
 list_results=sortrows(list_results);
