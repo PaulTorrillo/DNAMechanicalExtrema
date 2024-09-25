@@ -316,7 +316,7 @@ end
 samples(current_sample)=dist';
 end
 Z = linkage(distvec);
-comparisonmatrix(branch,branch_to_compare)=mean(samples);
+comparisonmatrix(branch,branch_to_compare)=median(samples);
     end
 end
 %Plot
